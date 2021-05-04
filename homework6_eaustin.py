@@ -49,13 +49,9 @@ def loadData(which):
 # will also need to modify slightly the gradient check code below).
 def yhateq(x, w):
     W1, b1, W2, b2 = unpack(w)
-    z1 = np.dot(W1, x.T)
-    for i in range(0, x.shape[0]):
-        z1[:, i] = z1[:, i] + b1
+    z1 = np.dot(W1, x.T) + b1[:, None]
     h = relu(z1)
-    z2 = np.dot(W2, h)
-    for i in range(0, x.shape[0]):
-        z2[:, i] = z2[:, i] + b2
+    z2 = np.dot(W2, h) + b2[:, None]
     yhat = softmax(z2)
     return yhat
 
@@ -73,9 +69,7 @@ def fCE(X, Y, w):
 def gradCE(X, Y, w):
     W1, b1, W2, b2 = unpack(w)
     yhat = yhateq(X, w)
-    z1 = np.dot(W1, X.T)
-    for i in range(0, X.shape[0]):
-        z1[:, i] = z1[:, i] + b1
+    z1 = np.dot(W1, X.T) + b1[:, None]
     h = relu(z1)
     g = np.outer(np.dot((yhat - Y.T).T, W2), reluprime(z1.T))
     w2fce = np.dot(yhat - Y.T, h.T)
