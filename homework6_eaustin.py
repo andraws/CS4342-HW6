@@ -67,7 +67,7 @@ def get_yHat(X, w):
     h = relu(z1)  # (40,5)
     z2 = W2.dot(h) + b2[:, np.newaxis]  # (10,5)
     y_Hat = softmax(z2)  # (10.5)
-    return y_Hat;
+    return y_Hat
 
 
 # Given training images X, associated labels Y, and a vector of combined weights
@@ -85,7 +85,7 @@ def fCE(X, Y, w):
 # will also need to modify slightly the gradient check code below).
 def gradCE(X, Y, w):
     W1, b1, W2, b2 = unpack(w)
-    y_hat = get_yHat(X, w);
+    y_hat = get_yHat(X, w)
 
     y_hatT = y_hat.T
     yT = Y.T
@@ -106,24 +106,39 @@ def gradCE(X, Y, w):
     return gradPacked
 
 
+def fPC(X, Y, w):
+    y_hat = get_yHat(X, w)
+    maxhat = np.argmax(y_hat, axis=1)
+    maxy = np.argmax(Y, axis=1)
+    acc = np.sum(1 * (maxy == maxhat)) / Y.shape[0]
+    return acc
+
+
 # Given training and testing datasets and an initial set of weights/biases b,
 # train the NN.
 def train(trainX, trainY, testX, testY, w):
     w = SGD(trainX, trainY, w, 0.01, 256)
     print(fCE(testX, testY, w))
+    print(fPC(testX, testY, w))
     return w
 
 
 def SGD(x, y, w, epsilon, bactchSize):
     epoch = (x.shape[0] // bactchSize) - 1
+    bactchnum = 0
     epochnum = 1000
     shuffle = np.random.permutation(y.shape[0])
     x = x[shuffle, :]
     y = y[shuffle, :]
     for e in range(0, epochnum):
         for i in range(0, epoch):
-            gradient = gradCE(x[0 + i * bactchSize:bactchSize + i * bactchSize, :], y[0 + i * bactchSize:bactchSize + i * bactchSize, :], w)
+            bactchnum = bactchnum + 1
+            minix = x[0 + i * bactchSize:bactchSize + i * bactchSize, :]
+            miniy = y[0 + i * bactchSize:bactchSize + i * bactchSize, :]
+            gradient = gradCE(minix, miniy, w)
             w = w - (epsilon * gradient)
+            if bactchnum >= (epochnum * epoch) - 19:
+                print(bactchnum, fCE(minix, miniy, w))
     return w
 
 
@@ -144,11 +159,11 @@ if __name__ == "__main__":
     idxs = [1, 2, 3, 4, 5]
     # Check that the gradient is correct on just a few examples (randomly drawn).
     idxs = np.random.permutation(trainX.shape[0])[0:NUM_CHECK]
-    print("Check grad: ",
-          scipy.optimize.check_grad(lambda w_: fCE(np.atleast_2d(trainX[idxs, :]), np.atleast_2d(trainY[idxs, :]), w_), \
-                                    lambda w_: gradCE(np.atleast_2d(trainX[idxs, :]), np.atleast_2d(trainY[idxs, :]),
-                                                      w_), \
-                                    w))
+    #print("Check grad: ",
+     #     scipy.optimize.check_grad(lambda w_: fCE(np.atleast_2d(trainX[idxs, :]), np.atleast_2d(trainY[idxs, :]), w_), \
+      #                              lambda w_: gradCE(np.atleast_2d(trainX[idxs, :]), np.atleast_2d(trainY[idxs, :]),
+       #                                               w_), \
+        #                            w))
 
     # Train the network using SGD.
     w = train(trainX, trainY, testX, testY, w)
