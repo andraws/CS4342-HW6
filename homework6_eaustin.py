@@ -49,17 +49,16 @@ def loadData(which):
 # will also need to modify slightly the gradient check code below).
 def yhateq(x, w):
     W1, b1, W2, b2 = unpack(w)
-    z1 = np.dot(W1, x.T) + b1[:, None]
-    h = relu(z1)
-    z2 = np.dot(W2, h) + b2[:, None]
-    yhat = softmax(z2)
-    return yhat
+    z1 = W1.dot(x.T) + b1[:, np.newaxis]  # (40,5)
+    h = relu(z1)  # (40,5)
+    z2 = W2.dot(h) + b2[:, np.newaxis]  # (10,5)
+    y_Hat = softmax(z2)  # (10.5)
+    return y_Hat
 
 
 def fCE(X, Y, w):
     yhat = yhateq(X, w)
-    cost = np.mean(np.dot(Y, np.log(yhat)))
-    return cost
+    return np.sum((Y) * np.log(yhat)) * (-1 / Y.shape[0])
 
 
 # Given training images X, associated labels Y, and a vector of combined weights
@@ -67,17 +66,24 @@ def fCE(X, Y, w):
 # want to extend this function to return multiple arguments (in which case you
 # will also need to modify slightly the gradient check code below).
 def gradCE(X, Y, w):
-    W1, b1, W2, b2 = unpack(w)
-    yhat = yhateq(X, w)
-    z1 = np.dot(W1, X.T) + b1[:, None]
-    h = relu(z1)
-    g = np.outer(np.dot((yhat - Y.T).T, W2), reluprime(z1.T))
-    w2fce = np.dot(yhat - Y.T, h.T)
-    b2fce = yhat - Y.T
-    w1fce = np.dot(g.T, X.T)
-    b1fce = g.T
-    grad = np.append(w2fce, b2fce, w1fce, b1fce)
-    return grad
+    y_hat = yhateq(X, w)
+
+    y_hatT = y_hat.T
+    yT = Y.T
+
+    z1 = W1.dot(X.T) + b1[:, np.newaxis]  # (40,5)
+    h = relu(z1)  # (40,5)
+
+    grad_W2 = (y_hatT - yT).dot(h.T) / len(Y)  # (10,40)
+    grad_b2 = np.mean(y_hatT - (yT), axis=1)  # (10,)
+
+    g_T = np.multiply(((y_hatT - yT).T.dot(W2)), reluprime(z1.T))  # (N,40)
+
+    grad_W1 = g_T.T.dot(X) / len(Y)
+    grad_b1 = np.mean(g_T.T, axis=1)  # (40,1)
+
+    gradPacked = pack(grad_W1, grad_b1, grad_W2, grad_b2)
+    return gradPacked
 
 
 # Given training and testing datasets and an initial set of weights/biases b,
@@ -87,34 +93,20 @@ def train(trainX, trainY, testX, testY, w):
 
 
 def relu(x):
-    relux = np.zeros(x.shape)
-    relux[np.where(x > 0), :] = x[np.where(x > 0), :]
-    return relux
+    return 1 * (x > 0)
 
 
 def reluprime(x):
-    relux = np.zeros(x.shape)
-    relux[:, np.where(x > 0)] = 1
-    return relux
+    return np.maximum(x, 0)
 
 
 def softmax(x):
-    z = np.exp(x) / np.sum(np.exp(x))
-    return z
+    exp = np.exp(x)
+    sum_exp = np.sum(exp, axis=0)
+    return (exp / sum_exp[None, :]).T
 
 def hoten(y):
-    yhot = np.zeros((y.shape[0], 10))
-    yhot[np.where(y == 0), 0] = 1
-    yhot[np.where(y == 1), 1] = 1
-    yhot[np.where(y == 2), 2] = 1
-    yhot[np.where(y == 3), 3] = 1
-    yhot[np.where(y == 4), 4] = 1
-    yhot[np.where(y == 5), 5] = 1
-    yhot[np.where(y == 6), 6] = 1
-    yhot[np.where(y == 7), 7] = 1
-    yhot[np.where(y == 8), 8] = 1
-    yhot[np.where(y == 9), 9] = 1
-    return yhot
+    return np.eye(NUM_OUTPUT)[y]
 
 
 if __name__ == "__main__":
@@ -134,6 +126,7 @@ if __name__ == "__main__":
 
     # Check that the gradient is correct on just a few examples (randomly drawn).
     idxs = np.random.permutation(trainX.shape[0])[0:NUM_CHECK]
+    approx_fprime = scipy.optimize.approx_fprime(w, lambda W_: fCE(trainX[idxs, :], trainY[idxs, :], W_), 1e-8)
     print(scipy.optimize.check_grad(lambda w_: fCE(np.atleast_2d(trainX[idxs, :]), np.atleast_2d(trainY[idxs, :]), w_), \
                                     lambda w_: gradCE(np.atleast_2d(trainX[idxs, :]), np.atleast_2d(trainY[idxs, :]),
                                                       w_), \
