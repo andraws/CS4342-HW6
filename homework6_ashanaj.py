@@ -1,6 +1,4 @@
 import numpy as np
-import matplotlib.pyplot as plt
-import scipy.optimize
 from scipy.optimize.optimize import approx_fprime
 from sklearn.model_selection import train_test_split
 
