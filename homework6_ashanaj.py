@@ -1,11 +1,10 @@
 import numpy as np
-import matplotlib.pyplot as plt
 import scipy.optimize
 from scipy.optimize.optimize import approx_fprime
 from sklearn.model_selection import train_test_split
 
 NUM_INPUT = 784  # Number of input neurons
-NUM_HIDDEN = 40  # Number of hidden neurons
+NUM_HIDDEN = 50  # Number of hidden neurons
 NUM_OUTPUT = 10  # Number of output neurons
 NUM_CHECK = 5  # Number of examples on which to check the gradient
 
@@ -110,24 +109,68 @@ def gradCE (X, Y, w, alpha=0.1,beta=0.1):
 def findBestHyperparameters(trainX,trainY, testX,testY):
     trainX, validX, trainY, validY = train_test_split(trainX,trainY, test_size=0.15)
     epochParm = [100,500,1000]
-    batchSizes = [16,32,128,256]
-    alpha = [0.5,0.1,0.05]
+    batchSizes = [256,128,32,16]
+    alpha = [0.001,0.005,0.01,0.05,0.1,0.5]
+    hiddenLayers = [30,40,50]
+    bestFCE = 1000.00
+    bestAlpha = 0
+    bestBatch = 0
+    bestEpoch = 0
+    bestHiddenL = 0
+    # Find Best Alpha
+    for a in alpha:
+        w = initWeights()
+        w = SGD(trainX,trainY,w, alpha=a)
+        fPC_ = fPC(validX,validY, w)
+        fCE_ = fCE(validX,validY, w)
+        if(bestFCE > fCE_):
+            bestFCE = fCE_
+            bestAlpha = a
+        print("Alpha: ", a, " fPC: ", fPC_, "fCE: ", fCE_)
 
+    # Find best batch size
+    for batch in batchSizes:
+        w = initWeights()
+        w = SGD(trainX,trainY,w, alpha=bestAlpha, batchSize=batch)
+        fPC_ = fPC(validX,validY, w)
+        fCE_ = fCE(validX,validY, w)
+        if(bestFCE > fCE_):
+            bestFCE = fCE_
+            bestBatch = batch
+        print("BatchSize: ", batch, " fPC: ", fPC_, "fCE: ", fCE_)
+    # find best epoch
     for epoch in epochParm:
-        for batch in batchSizes:
-            for a in alpha:
-                W1 = 2*(np.random.random(size=(NUM_HIDDEN, NUM_INPUT))/NUM_INPUT**0.5) - 1./NUM_INPUT**0.5
-                b1 = 0.01 * np.ones(NUM_HIDDEN)
-                W2 = 2*(np.random.random(size=(NUM_OUTPUT, NUM_HIDDEN))/NUM_HIDDEN**0.5) - 1./NUM_HIDDEN**0.5
-                b2 = 0.01 * np.ones(NUM_OUTPUT)
-                w = pack(W1,b1,W2,b2)
-                
-                wT = SGD(trainX,trainY,w,epsilon=0.01,epochN=epoch,bactchSize=batch,alphaS=a)
-                print("For Epoch: " + epoch.__str__() +" Batch Size: " + batch.__str__() + " Alpha: " + a.__str__() + " fPC: " + fPC(validX,validY,wT).__str__() + " fCE: " + fCE(validX,validY,wT).__str__())
+        w = initWeights()
+        w = SGD(trainX,trainY,w, alpha=bestAlpha, batchSize=bestBatch, epochN= epoch)
+        fPC_ = fPC(validX,validY, w)
+        fCE_ = fCE(validX,validY, w)
+        if(bestFCE > fCE_):
+            bestFCE = fCE_
+            bestEpoch = epoch
+        print("Epoch: ", epoch, " fPC: ", fPC_, "fCE: ", fCE_)
+        
+    # find best hidden layer num
+    for hidden in hiddenLayers:
+        NUM_HIDDEN = hidden
+        w = initWeights()
+        w = SGD(trainX,trainY,w, alpha=bestAlpha, batchSize=bestBatch, epochN= bestEpoch)
+        fPC_ = fPC(validX,validY, w)
+        fCE_ = fCE(validX,validY, w)
+        if(bestFCE > fCE_):
+            bestFCE = fCE_
+            bestHiddenL = hidden
+        print("Hidden Layers: ", hidden, " fPC: ", fPC_, "fCE: ", fCE_)
+
+    print("Alpha: ",bestAlpha, " Batch Size: ", bestBatch, " Epoch: ", bestEpoch, " Hidden Layer: ", bestHiddenL)
+    NUM_HIDDEN = bestHiddenL
+    w = initWeights()
+    bestW = SGD(testX,testY,epochN=bestEpoch, batchSize=bestBatch, alpha = bestAlpha,)
+    print("fCE: ",fCE(testX,testY, bestW))
+    print("fPCE: ",fPC(testX,testY, bestW))
 
 
 
-def SGD(x, y, w, epsilon=0.01, epochN=100, bactchSize=256, alphaS=0.5,betaS=0.1):
+def SGD(x, y, w, epsilon=0.01, epochN=1000, bactchSize=256, alpha=0.5,beta=0.1, verbose = False):
     epoch = (x.shape[0] // bactchSize) - 1
     bactchnum = 0
     shuffle = np.random.permutation(y.shape[0])
@@ -138,9 +181,9 @@ def SGD(x, y, w, epsilon=0.01, epochN=100, bactchSize=256, alphaS=0.5,betaS=0.1)
             bactchnum = bactchnum + 1
             minix = x[0 + i * bactchSize:bactchSize + i * bactchSize, :]
             miniy = y[0 + i * bactchSize:bactchSize + i * bactchSize, :]
-            gradient = gradCE(minix, miniy, w, alpha=alphaS,beta=betaS)
+            gradient = gradCE(minix, miniy, w, alpha=alpha,beta=beta)
             w = w - (epsilon * gradient)
-            if bactchnum >= (epochN * epoch) - 19:
+            if (bactchnum >= (epochN * epoch) - 19 and verbose):
                 print(bactchnum, fCE(minix, miniy, w))
     return w
 
@@ -153,6 +196,15 @@ def train (trainX, trainY, testX, testY, w):
     # return w
     findBestHyperparameters(trainX,trainY,testX,testY)
 
+def initWeights():
+    # Initialize weights randomly
+    W1 = 2*(np.random.random(size=(NUM_HIDDEN, NUM_INPUT))/NUM_INPUT**0.5) - 1./NUM_INPUT**0.5
+    b1 = 0.01 * np.ones(NUM_HIDDEN)
+    W2 = 2*(np.random.random(size=(NUM_OUTPUT, NUM_HIDDEN))/NUM_HIDDEN**0.5) - 1./NUM_HIDDEN**0.5
+    b2 = 0.01 * np.ones(NUM_OUTPUT)
+    # Concatenate all the weights and biases into one vector; this is necessary for check_grad
+    w = pack(W1, b1, W2, b2)
+    return w
 
 if __name__ == "__main__":
     # Load data
