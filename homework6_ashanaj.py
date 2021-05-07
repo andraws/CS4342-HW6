@@ -107,7 +107,7 @@ def gradCE (X, Y, w, alpha=0.1,beta=0.1):
 
     return gradPacked
 
-def findBestHyperparameters(trainX,trainY, testX,testY, w):
+def findBestHyperparameters(trainX,trainY, testX,testY):
     trainX, validX, trainY, validY = train_test_split(trainX,trainY, test_size=0.15)
     NUM_HIDDEN = 50
     epochParm = [100,500,1000]
@@ -117,9 +117,14 @@ def findBestHyperparameters(trainX,trainY, testX,testY, w):
     for epoch in epochParm:
         for batch in batchSizes:
             for a in alpha:
-                wT = SGD(trainX,trainY, w,epsilon=0.01,epochN=epoch,bactchSize=batch,alphaS=a)
-                print("For Epoch: " +epoch +" Batch Size: " +batch + "Alpha: " + a + "fPC: " + fPC(validX,validY,wT) + " fCE: " + fCE(validX,validY,wT))
-    
+                W1 = 2*(np.random.random(size=(NUM_HIDDEN, NUM_INPUT))/NUM_INPUT**0.5) - 1./NUM_INPUT**0.5
+                b1 = 0.01 * np.ones(NUM_HIDDEN)
+                W2 = 2*(np.random.random(size=(NUM_OUTPUT, NUM_HIDDEN))/NUM_HIDDEN**0.5) - 1./NUM_HIDDEN**0.5
+                b2 = 0.01 * np.ones(NUM_OUTPUT)
+                w = pack(W1,b1,W2,b2)
+                wT = SGD(trainX,trainY,w,epsilon=0.01,epochN=epoch,bactchSize=batch,alphaS=a)
+                print("For Epoch: " + epoch.__str__() +" Batch Size: " + batch.__str__() + " Alpha: " + a.__str__() + " fPC: " + fPC(validX,validY,wT).__str__() + " fCE: " + fCE(validX,validY,wT).__str__())
+
 
 
 def SGD(x, y, w, epsilon=0.01, epochN=100, bactchSize=256, alphaS=0.5,betaS=0.1):
