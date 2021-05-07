@@ -126,7 +126,9 @@ def findBestHyperparameters(trainX,trainY, testX,testY):
             bestFCE = fCE_
             bestAlpha = a
         print("Alpha: ", a, " fPC: ", fPC_, "fCE: ", fCE_)
-
+    print("Best Alpha: ", bestAlpha)
+    print("===========================================================================")
+    print()
     # Find best batch size
     for batch in batchSizes:
         w = initWeights()
@@ -137,6 +139,9 @@ def findBestHyperparameters(trainX,trainY, testX,testY):
             bestFCE = fCE_
             bestBatch = batch
         print("BatchSize: ", batch, " fPC: ", fPC_, "fCE: ", fCE_)
+    print("Best Batch Size: ", bestBatch)
+    print("===========================================================================")
+    print()
 
     # find best epoch
     for epoch in epochParm:
@@ -148,6 +153,9 @@ def findBestHyperparameters(trainX,trainY, testX,testY):
             bestFCE = fCE_
             bestEpoch = epoch
         print("Epoch: ", epoch, " fPC: ", fPC_, "fCE: ", fCE_)
+    print("Best Epoch: ", bestEpoch)
+    print("===========================================================================")
+    print()
 
     # find best hidden layer num
     for hidden in hiddenLayers:
@@ -160,31 +168,33 @@ def findBestHyperparameters(trainX,trainY, testX,testY):
             bestFCE = fCE_
             bestHiddenL = hidden
         print("Hidden Layers: ", hidden, " fPC: ", fPC_, "fCE: ", fCE_)
-
+    print("Best Hidden Layer: ", bestHiddenL)
+    print("===========================================================================")
+    print()
     print("Alpha: ",bestAlpha, " Batch Size: ", bestBatch, " Epoch: ", bestEpoch, " Hidden Layer: ", bestHiddenL)
     NUM_HIDDEN = bestHiddenL
     w = initWeights()
-    bestW = SGD(testX,testY, w, epochN=bestEpoch, bactchSize=bestBatch, alpha = bestAlpha, verbose=True)
+    bestW = SGD(testX,testY, w, epochN=bestEpoch, batchSize=bestBatch, alpha = bestAlpha, verbose=True)
     print("fCE: ",fCE(testX,testY, bestW))
     print("fPCE: ",fPC(testX,testY, bestW))
 
 
 
-def SGD(x, y, w, epsilon=0.01, epochN=100, bactchSize=256, alpha=0.5,beta=0, verbose = False):
-    epoch = (x.shape[0] // bactchSize) - 1
+def SGD(x, y, w, epsilon=0.01, epochN=100, batchSize=256, alpha=0.5,beta=0, verbose = False):
+    epoch = (x.shape[0] // batchSize) - 1
     bactchnum = 0
     shuffle = np.random.permutation(y.shape[0])
     x = x[shuffle, :]
     y = y[shuffle, :]
     for e in range(0, epochN):
         for i in range(0, epoch):
-            bactchnum = bactchnum + 1
-            minix = x[0 + i * bactchSize:bactchSize + i * bactchSize, :]
-            miniy = y[0 + i * bactchSize:bactchSize + i * bactchSize, :]
+            batchnum = batchSize + 1
+            minix = x[0 + i * batchSize:batchSize + i * batchSize, :]
+            miniy = y[0 + i * batchSize:batchSize + i * batchSize, :]
             gradient = gradCE(minix, miniy, w, alpha=alpha,beta=beta)
             w = w - (epsilon * gradient)
-            if (bactchnum >= (epochN * epoch) - 19 and verbose):
-                print(bactchnum, fCE(minix, miniy, w))
+            if (batchnum >= (epochN * epoch) - 19 and verbose):
+                print(batchnum, fCE(minix, miniy, w))
     return w
 
 # Given training and testing datasets and an initial set of weights/biases b,
