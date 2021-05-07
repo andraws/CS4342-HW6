@@ -98,6 +98,13 @@ def gradCE (X, Y, w):
 
     return gradPacked
 
+def fPC(X, Y, w):
+    y_hat = get_yHat(X, w)
+    maxhat = np.argmax(y_hat, axis=1)
+    maxy = np.argmax(Y, axis=1)
+    acc = np.sum(1 * (maxy == maxhat)) / Y.shape[0]
+    return acc
+
 def findBestHyperParameters(X, y, w1, w2, b1, b2, faces, labels):
     w1v = np.copy(w1)
     w2v = np.copy(w2)
@@ -130,10 +137,29 @@ def findBestHyperParameters(X, y, w1, w2, b1, b2, faces, labels):
         w1v, w2v, b1v, b2v, pc = train()
 # Given training and testing datasets and an initial set of weights/biases b,
 # train the NN.
-def train (trainX, trainY, testX, testY, w):
-    # print(fCE(trainX,trainY,w))
-    # print(gradCE(trainX,trainY,w).shape)
-    pass
+def train(trainX, trainY, testX, testY, w):
+    w = SGD(trainX, trainY, w, 0.01, 256)
+    print(fCE(testX, testY, w))
+    print(fPC(testX, testY, w))
+    return w
+
+def SGD(x, y, w, epsilon, bactchSize):
+    epoch = (x.shape[0] // bactchSize) - 1
+    bactchnum = 0
+    epochnum = 1000
+    shuffle = np.random.permutation(y.shape[0])
+    x = x[shuffle, :]
+    y = y[shuffle, :]
+    for e in range(0, epochnum):
+        for i in range(0, epoch):
+            bactchnum = bactchnum + 1
+            minix = x[0 + i * bactchSize:bactchSize + i * bactchSize, :]
+            miniy = y[0 + i * bactchSize:bactchSize + i * bactchSize, :]
+            gradient = gradCE(minix, miniy, w)
+            w = w - (epsilon * gradient)
+            if bactchnum >= (epochnum * epoch) - 19:
+                print(bactchnum, fCE(minix, miniy, w))
+    return w
 
 if __name__ == "__main__":
     # Load data
