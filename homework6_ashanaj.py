@@ -137,6 +137,7 @@ def findBestHyperparameters(trainX,trainY, testX,testY):
             bestFCE = fCE_
             bestBatch = batch
         print("BatchSize: ", batch, " fPC: ", fPC_, "fCE: ", fCE_)
+
     # find best epoch
     for epoch in epochParm:
         w = initWeights()
@@ -163,13 +164,13 @@ def findBestHyperparameters(trainX,trainY, testX,testY):
     print("Alpha: ",bestAlpha, " Batch Size: ", bestBatch, " Epoch: ", bestEpoch, " Hidden Layer: ", bestHiddenL)
     NUM_HIDDEN = bestHiddenL
     w = initWeights()
-    bestW = SGD(testX,testY,epochN=bestEpoch, batchSize=bestBatch, alpha = bestAlpha, verbose=True)
+    bestW = SGD(testX,testY, w, epochN=bestEpoch, bactchSize=bestBatch, alpha = bestAlpha, verbose=True)
     print("fCE: ",fCE(testX,testY, bestW))
     print("fPCE: ",fPC(testX,testY, bestW))
 
 
 
-def SGD(x, y, w, epsilon=0.01, epochN=1000, bactchSize=256, alpha=0.5,beta=0.1, verbose = False):
+def SGD(x, y, w, epsilon=0.01, epochN=100, bactchSize=256, alpha=0.5,beta=0, verbose = False):
     epoch = (x.shape[0] // bactchSize) - 1
     bactchnum = 0
     shuffle = np.random.permutation(y.shape[0])
