@@ -163,7 +163,7 @@ def findBestHyperparameters(trainX,trainY, testX,testY):
     print("Alpha: ",bestAlpha, " Batch Size: ", bestBatch, " Epoch: ", bestEpoch, " Hidden Layer: ", bestHiddenL)
     NUM_HIDDEN = bestHiddenL
     w = initWeights()
-    bestW = SGD(testX,testY,epochN=bestEpoch, batchSize=bestBatch, alpha = bestAlpha,)
+    bestW = SGD(testX,testY,epochN=bestEpoch, batchSize=bestBatch, alpha = bestAlpha, verbose=True)
     print("fCE: ",fCE(testX,testY, bestW))
     print("fPCE: ",fPC(testX,testY, bestW))
 
