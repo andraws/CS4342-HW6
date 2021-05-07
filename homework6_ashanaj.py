@@ -1,5 +1,4 @@
 import numpy as np
-import scipy.optimize
 from scipy.optimize.optimize import approx_fprime
 from sklearn.model_selection import train_test_split
 
@@ -148,7 +147,7 @@ def findBestHyperparameters(trainX,trainY, testX,testY):
             bestFCE = fCE_
             bestEpoch = epoch
         print("Epoch: ", epoch, " fPC: ", fPC_, "fCE: ", fCE_)
-        
+
     # find best hidden layer num
     for hidden in hiddenLayers:
         NUM_HIDDEN = hidden
