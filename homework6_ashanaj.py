@@ -109,7 +109,6 @@ def gradCE (X, Y, w, alpha=0.1,beta=0.1):
 
 def findBestHyperparameters(trainX,trainY, testX,testY):
     trainX, validX, trainY, validY = train_test_split(trainX,trainY, test_size=0.15)
-    NUM_HIDDEN = 50
     epochParm = [100,500,1000]
     batchSizes = [16,32,128,256]
     alpha = [0.5,0.1,0.05]
@@ -122,6 +121,7 @@ def findBestHyperparameters(trainX,trainY, testX,testY):
                 W2 = 2*(np.random.random(size=(NUM_OUTPUT, NUM_HIDDEN))/NUM_HIDDEN**0.5) - 1./NUM_HIDDEN**0.5
                 b2 = 0.01 * np.ones(NUM_OUTPUT)
                 w = pack(W1,b1,W2,b2)
+                
                 wT = SGD(trainX,trainY,w,epsilon=0.01,epochN=epoch,bactchSize=batch,alphaS=a)
                 print("For Epoch: " + epoch.__str__() +" Batch Size: " + batch.__str__() + " Alpha: " + a.__str__() + " fPC: " + fPC(validX,validY,wT).__str__() + " fCE: " + fCE(validX,validY,wT).__str__())
 
@@ -151,7 +151,7 @@ def train (trainX, trainY, testX, testY, w):
     # print(fCE(testX,testY,w))
     # print(fPC(testX,testY,w))
     # return w
-    findBestHyperparameters(trainX,trainY,testX,testY,w)
+    findBestHyperparameters(trainX,trainY,testX,testY)
 
 
 if __name__ == "__main__":
