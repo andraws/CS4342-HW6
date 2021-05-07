@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import scipy.optimize
 from scipy.optimize.optimize import approx_fprime
+from sklearn.model_selection import train_test_split
 
 NUM_INPUT = 784  # Number of input neurons
 NUM_HIDDEN = 40  # Number of hidden neurons
@@ -29,6 +30,14 @@ def unpack (w):
 def pack (W1, b1, W2, b2):
     return np.concatenate((W1.flatten(),b1.flatten(),W2.flatten(),b2.flatten()))
     
+# calculate the accuracy of our model
+def fPC(X, Y, w):
+    y_hat = get_yHat(X, w)
+    maxhat = np.argmax(y_hat, axis=1)
+    maxy = np.argmax(Y, axis=1)
+    acc = np.sum(1 * (maxy == maxhat)) / Y.shape[0]
+    return acc
+
 
 # Load the images and labels from a specified dataset (train or test).
 def loadData (which):
@@ -76,7 +85,7 @@ def fCE (X, Y, w):
 # and bias terms w, compute and return the gradient of fCE. You might
 # want to extend this function to return multiple arguments (in which case you
 # will also need to modify slightly the gradient check code below).
-def gradCE (X, Y, w):
+def gradCE (X, Y, w, alpha=0.1,beta=0.1):
     W1, b1, W2, b2 = unpack(w)
     y_hat = get_yHat(X,w);
 
@@ -86,24 +95,59 @@ def gradCE (X, Y, w):
     z1 = W1.dot(X.T) + b1[:,np.newaxis] # (40,5)
     h = relu(z1) #(40,5)  
 
-    grad_W2 = (y_hatT-yT).dot(h.T) / len(Y) # (10,40)
+    grad_W2 = ((y_hatT-yT).dot(h.T) + alpha*W2 + beta* np.sign(W2)) / len(Y) # (10,40)
     grad_b2 = np.mean(y_hatT-(yT), axis=1) # (10,)
 
     g_T = np.multiply(((y_hatT-yT).T.dot(W2)) ,reluprime(z1.T)) # (N,40)
 
-    grad_W1 = g_T.T.dot(X) / len(Y)
+    grad_W1 = (g_T.T.dot(X) + alpha*W1 + beta*np.sign(W1))/ len(Y)
     grad_b1 = np.mean(g_T.T, axis=1) # (40,1)
 
     gradPacked =  pack(grad_W1,grad_b1,grad_W2,grad_b2)
 
     return gradPacked
 
+def findBestHyperparameters(trainX,trainY, testX,testY, w):
+    trainX, validX, trainY, validY = train_test_split(trainX,trainY, test_size=0.15)
+    NUM_HIDDEN = 50
+    epochParm = [100,500,1000]
+    batchSizes = [16,32,128,256]
+    alpha = [0.5,0.1,0.05]
+
+    for epoch in epochParm:
+        for batch in batchSizes:
+            for a in alpha:
+                wT = SGD(trainX,trainY, w,epsilon=0.01,epochN=epoch,bactchSize=batch,alphaS=a)
+                print("For Epoch: " +epoch +" Batch Size: " +batch + "Alpha: " + a + "fPC: " + fPC(validX,validY,wT) + " fCE: " + fCE(validX,validY,wT))
+    
+
+
+def SGD(x, y, w, epsilon=0.01, epochN=100, bactchSize=256, alphaS=0.5,betaS=0.1):
+    epoch = (x.shape[0] // bactchSize) - 1
+    bactchnum = 0
+    shuffle = np.random.permutation(y.shape[0])
+    x = x[shuffle, :]
+    y = y[shuffle, :]
+    for e in range(0, epochN):
+        for i in range(0, epoch):
+            bactchnum = bactchnum + 1
+            minix = x[0 + i * bactchSize:bactchSize + i * bactchSize, :]
+            miniy = y[0 + i * bactchSize:bactchSize + i * bactchSize, :]
+            gradient = gradCE(minix, miniy, w, alpha=alphaS,beta=betaS)
+            w = w - (epsilon * gradient)
+            if bactchnum >= (epochN * epoch) - 19:
+                print(bactchnum, fCE(minix, miniy, w))
+    return w
+
 # Given training and testing datasets and an initial set of weights/biases b,
 # train the NN.
 def train (trainX, trainY, testX, testY, w):
-    # print(fCE(trainX,trainY,w))
-    # print(gradCE(trainX,trainY,w).shape)
-    pass
+    # w = SGD(trainX,trainY,w)
+    # print(fCE(testX,testY,w))
+    # print(fPC(testX,testY,w))
+    # return w
+    findBestHyperparameters(trainX,trainY,testX,testY,w)
+
 
 if __name__ == "__main__":
     # Load data
@@ -119,28 +163,15 @@ if __name__ == "__main__":
     # Concatenate all the weights and biases into one vector; this is necessary for check_grad
     w = pack(W1, b1, W2, b2)
 
-    idxs = [1,2,3,4,5]
     # Check that the gradient is correct on just a few examples (randomly drawn).
-    idxs = np.random.permutation(trainX.shape[0])[0:NUM_CHECK]
-    print("Check grad: ",scipy.optimize.check_grad(lambda w_: fCE(np.atleast_2d(trainX[idxs,:]), np.atleast_2d(trainY[idxs,:]), w_), \
-                                    lambda w_: gradCE(np.atleast_2d(trainX[idxs,:]), np.atleast_2d(trainY[idxs,:]), w_), \
-                                    w))
+    # idxs = np.random.permutation(trainX.shape[0])[0:NUM_CHECK]
+    # print("Check grad: ",scipy.optimize.check_grad(lambda w_: fCE(np.atleast_2d(trainX[idxs,:]), np.atleast_2d(trainY[idxs,:]), w_), \
+    #                                 lambda w_: gradCE(np.atleast_2d(trainX[idxs,:]), np.atleast_2d(trainY[idxs,:]), w_), \
+    #                                 w))
 
-
+    # approx_fprime to figure out what was wrong with gradCE
     # approx_fprime = scipy.optimize.approx_fprime(w, lambda W_: fCE(trainX[idxs,:], trainY[idxs,:], W_), 1e-8)
     # aW1, ab1, aW2, ab2 = unpack(approx_fprime)
-    # W1, b1, W2, b2 = unpack(gradCE(trainX[idxs,:], trainY[idxs,:],w))
-    # print(np.allclose(ab2,b2, 1e-4))
-    # print(np.allclose(aW1,W1, 1e-4))
-    # print(np.allclose(ab1,b1, 1e-4))
-    # print(np.allclose(aW2,W2, 1e-2))
-
-    # # print(W2[0])
-    # # print(aW2[0])   
-    # print("W2 Mean: ", np.mean(W2-aW2))
-    # print("B2 Mean: ", np.mean(b2-ab2)) 
-    # print("W1 Mean: ", np.mean(W1-aW1)) 
-    # print("B1 Mean: ", np.mean(b1-ab1)) 
     
     # Train the network using SGD.
-    train(trainX[idxs,:], trainY[idxs], testX, testY, w)
+    train(trainX, trainY, testX, testY, w)
